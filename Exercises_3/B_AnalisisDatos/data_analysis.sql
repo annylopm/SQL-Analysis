@@ -130,8 +130,64 @@ FROM trialPlan t
 JOIN annualPlan a
 ON (t.customer_id = a.customer_id)
 
+--10)¿Puede desglosar este valor promedio en períodos de 30 días (es decir, 0-30 días, 31-60 días, etc.)
+WITH trialPlan AS (
+	SELECT
+		s.customer_id,
+		s.start_date_ AS trial_date
+	FROM subscriptions s
+	JOIN plans p
+	ON (s.plan_id = p.plan_id)
+	WHERE p.plan_name = 'trial'
+),
+annualPlan as(
+	SELECT
+		s.customer_id,
+		s.start_date_ AS annual_date
+	FROM subscriptions s
+	JOIN plans p
+	ON (s.plan_id = p.plan_id)
+	WHERE p.plan_name = 'pro annual'
+),
+datesDiff AS(
+	SELECT 
+		DATEDIFF(DAY, a.annual_date, t.trial_date) AS diferencia_dias
+	FROM trialPlan t
+	JOIN annualPlan a
+	ON (t.customer_id = a.customer_id)
+)
+SELECT
+COUNT(*) AS cantidad,
+CASE WHEN diferencia_dias >= 0 AND diferencia_dias <= 30 THEN '0-30 días'
+	 WHEN diferencia_dias > 30 AND diferencia_dias <= 60 THEN '31-60 días'
+	 WHEN diferencia_dias > 60 AND diferencia_dias <= 90 THEN '61-90 días'
+	 ELSE 'Mayor a 90 días' END as clasificacion_dias
+FROM datesDiff
+GROUP BY 
+CASE WHEN diferencia_dias >= 0 AND diferencia_dias <= 30 THEN '0-30 días'
+	 WHEN diferencia_dias > 30 AND diferencia_dias <= 60 THEN '31-60 días'
+	 WHEN diferencia_dias > 60 AND diferencia_dias <= 90 THEN '61-90 días'
+	 ELSE 'Mayor a 90 días' END
 
 
+--11)¿Cuántos clientes bajaron de un plan mensual profesional a un plan mensual básico en 2020?
+WITH nextPlan as(
+	SELECT
+		s.customer_id,
+		s.start_date_,
+		p.plan_name,
+		LEAD(p.plan_name) OVER (PARTITION BY s.customer_id ORDER BY p.plan_id) AS next_plan
+	FROM subscriptions s
+	JOIN plans p
+	ON (s.plan_id = p.plan_id)
+)
+SELECT 
+COUNT (*) AS cantidad
+FROM nextPlan
+WHERE plan_name = 'pro monthly'
+AND next_plan = 'basic monthly'
+AND DATEPART(YEAR, start_date_) = 2020
+GROUP by next_plan
 
 select * from plans
 select * from subscriptions

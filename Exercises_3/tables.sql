@@ -21,7 +21,7 @@ VALUES
 CREATE TABLE subscriptions (
   customer_id INTEGER,
   plan_id INTEGER,
-  start_date DATE
+  start_date_ DATE
 );
 
 INSERT INTO subscriptions
